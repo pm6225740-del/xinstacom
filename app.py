@@ -1,161 +1,54 @@
 import streamlit as st
-from openai import OpenAI
 
+# --- 1. 배경색 및 테마 설정 (사이드바) ---
+st.sidebar.header("🎨 디자인 설정")
+bg_color = st.sidebar.color_picker("배경색을 선택하세요", "#000000") # 기본값 블랙
+text_color = st.sidebar.selectbox("글자색을 선택하세요", ["#FFFFFF", "#F8F9FA", "#E0E0E0", "#000000"])
 
-# 1. 페이지 설정 및 디자인
-st.set_page_config(page_title="리뷰 마스터 AI", page_icon="📝")
-# --- 앱 스타일 및 프라이버시 설정 ---
-st.markdown("""
+# --- 2. 동적 스타일 적용 (CSS) ---
+st.markdown(f"""
     <style>
-    /* 1. 하단 'Made with Streamlit' 및 헤더(깃허브 링크 등) 숨기기 */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    /* 전체 배경색 및 기본 글자색 설정 */
+    .stApp {{
+        background-color: {bg_color};
+        color: {text_color};
+    }}
     
-    /* 2. 리뷰 입력창(Textarea) 글씨 색상 및 배경 수정 */
-    textarea {
-        color: #1E1E1E !important; /* 진한 검은색 글씨 */
-        background-color: #FFFFFF !important; /* 하얀색 배경 고정 */
-    }
+    /* 리뷰 입력창 스타일: 배경 화이트, 글씨 블랙 고정 */
+    textarea {{
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        font-size: 1.1rem !important;
+        border-radius: 10px !important;
+    }}
     
-    /* 입력창 라벨(제목) 색상 수정 */
-    .stTextArea label p {
-        color: #1E1E1E !important;
+    /* 입력창 라벨(제목) 글자색 */
+    .stTextArea label p {{
+        color: {text_color} !important;
         font-weight: bold;
-    }
-    
-    /* 3. 전체적인 배경을 깔끔하게 유지 */
-    .stApp {
-        background-color: #F8F9FA;
-    }
+    }}
+
+    /* 버튼 스타일 커스텀 */
+    .stButton>button {{
+        border-radius: 20px;
+        background-color: #FF4B4B;
+        color: white;
+    }}
+
+    /* 프라이버시 설정: 헤더/푸터 숨기기 */
+    #MainMenu {{visibility: hidden;}}
+    footer {{visibility: hidden;}}
+    header {{visibility: hidden;}}
     </style>
     """, unsafe_allow_html=True)
 
-# 2. 사이드바 설정
-with st.sidebar:
-    st.title("⚙️ 설정")
-    api_key = st.text_input("OpenAI API Key를 입력하세요", type="password")
-    st.info("키는 본인의 OpenAI 계정에서 발급받은 것을 사용하세요.")
-    st.caption(
-        "이 앱은 사용자 본인의 API Key를 사용하므로 안전하며, "
-        "개발자는 어떤 데이터도 저장하지 않습니다."
-    )
+# --- 3. 앱 콘텐츠 영역 ---
+st.title("🚀 AI 리뷰 마스터")
+st.write("사장님만의 특별한 리뷰를 생성해보세요.")
 
+review_input = st.text_area("여기에 리뷰 내용을 입력하거나 키워드를 적어주세요.", placeholder="예: 커피가 맛있고 사장님이 친절해요!")
 
-def generate_reply(api_key: str, review: str, tone: str) -> str:
-    client = OpenAI(api_key=api_key)
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "너는 베테랑 온라인 쇼핑몰 사장님이야. "
-                    f"고객 리뷰에 대해 {tone} 말투로 감사와 공감을 담아 답글을 작성해줘. "
-                    "가게의 신뢰가 느껴지도록 부드럽지만 단호하게 안내해주고, "
-                    "이모지도 자연스럽게 섞어줘."
-                ),
-            },
-            {"role": "user", "content": review},
-        ],
-    )
-    return response.choices[0].message.content
-
-
-# 3. 메인 화면 UI
-st.title("🚀 리뷰 마스터 AI")
-st.subheader("리뷰 답글 다는 시간을 1분으로 줄여드립니다.")
-
-with st.expander("📖 사용 가이드", expanded=False):
-    st.markdown(
-        """
-        **1️⃣ OpenAI API Key 발급 방법**
-        - `https://platform.openai.com` 에 접속해 로그인합니다.
-        - 상단 메뉴에서 **API Keys** 메뉴로 이동합니다.
-        - **Create new secret key** 버튼을 눌러 새 키를 발급받습니다.
-        - 발급된 키를 복사해 이 앱의 **사이드바 입력창**에 붙여넣습니다.
-
-        **2️⃣ 리뷰 복사 방법 (예시 – 네이버 스마트스토어)**
-        - 스마트스토어 판매자센터에서 **상품 리뷰 관리** 메뉴로 이동합니다.
-        - 답글을 달고 싶은 리뷰의 내용을 마우스로 드래그하여 선택합니다.
-        - `Ctrl + C` (또는 마우스 우클릭 → 복사)를 눌러 복사합니다.
-        - 이 화면의 **고객 리뷰 입력 칸**에 `Ctrl + V`로 붙여넣습니다.
-
-        **3️⃣ 답글 활용 팁**
-        - 필요한 경우, 생성된 답글을 조금 수정해서 매장 톤에 딱 맞게 다듬어 사용하세요.
-        - 자주 쓰는 멘트는 메모장에 저장해두고, AI가 만든 답글과 섞어 쓰면 더 효율적입니다.
-        """
-    )
-
-review_content = st.text_area(
-    "고객 리뷰를 여기에 붙여넣으세요:",
-    placeholder="예: 배송이 너무 느려요. 상품은 괜찮네요.",
-    height=150,
-)
-
-col1, _ = st.columns(2)
-with col1:
-    tone = st.radio(
-        "원하는 말투를 선택하세요:",
-        ["친절하고 따뜻하게", "유머러스하고 위트있게", "정중하고 전문적으로"],
-    )
-
-# 4. 답글 생성 로직
-result = None
-if st.button("✨ AI 답글 생성하기"):
-    if not api_key:
-        st.error("왼쪽 사이드바에 API Key를 먼저 입력해주세요!")
-    elif not review_content:
-        st.warning("리뷰 내용을 입력해주세요.")
-    else:
-        try:
-            with st.spinner("AI가 사장님 빙의 중... 잠시만 기다려주세요."):
-                result = generate_reply(api_key, review_content, tone)
-
-            st.success("답글이 완성되었습니다! 아래 내용을 복사해서 사용해 주세요.")
-            st.balloons()
-        except Exception as e:
-            st.error(f"오류가 발생했습니다: {e}")
-
-# 5. 결과 출력 영역 (항상 같은 위치에 표시)
-st.markdown("### ✨ AI 답글 결과")
-
-if result:
-    # 시각적으로 강조된 박스 안에 결과 표시
-    st.markdown(
-        "<div class='result-box'>"
-        "<span style='font-size:0.9rem; font-weight:600;'>복사용 텍스트</span>",
-        unsafe_allow_html=True,
-    )
-    st.text_area(
-        label="",
-        value=result,
-        height=220,
-        key="result_text_area",
-        label_visibility="collapsed",
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-else:
-    st.info("위에 고객 리뷰를 입력하고, 말투를 선택한 뒤 **AI 답글 생성하기** 버튼을 눌러보세요.")
-
-# 6. 하단 후원 영역
-st.divider()
-st.markdown(
-    "<div style='text-align:center; margin-top: 0.5rem;'>"
-    "<h4 style='margin-bottom: 0.4rem;'>☕ 사장님, 이 툴이 도움이 되셨나요?</h4>"
-    "<p style='margin-top: 0; margin-bottom: 0.8rem; color: #555;'>"
-    "사장님의 소중한 시간을 아껴드리기 위해 만든 무료 도구입니다.<br>"
-    "커피 한 잔으로 이 프로젝트를 응원해주세요!"
-    "</p>"
-    "</div>",
-    unsafe_allow_html=True,
-)
-
-col_left, col_center, col_right = st.columns([1, 2, 1])
-with col_center:
-    st.link_button(
-        "개발자에게 커피 한 잔 선물하기",
-        "https://ko-fi.com/masterpiece60393",
-        type="primary",
-        use_container_width=True,
-    )
+if st.button("AI 리뷰 생성하기"):
+    st.success("멋진 리뷰가 생성되었습니다! (여기에 AI 로직이 들어갑니다)")
+    # 생성된 결과 출력 부분
+    st.markdown(f"<div style='color:{text_color}'>여기에 생성된 리뷰 결과가 표시됩니다.</div>", unsafe_allow_html=True)
