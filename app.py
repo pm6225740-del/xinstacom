@@ -3,7 +3,7 @@ import yt_dlp
 import os
 import tempfile
 import random
-import requests # API 연동을 위한 라이브러리 추가
+import requests
 
 # === 1. 페이지 기본 설정 ===
 st.set_page_config(page_title="SNS 미디어 허브", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
@@ -94,25 +94,7 @@ def download_video(url):
 
 # === 4. 실시간 API 연동 뼈대 (및 동적 시뮬레이션) ===
 def fetch_real_time_trends():
-    """
-    실제 API 키를 발급받으면 작동할 로직입니다.
-    현재는 접속할 때마다 순위와 데이터가 섞이는 '실시간 시뮬레이션'으로 작동합니다.
-    """
-    # 💡 나중에 가입 후 여기에 API 키를 넣으면 진짜 연동이 시작됩니다.
-    RAPID_API_KEY = "" 
-    
-    if RAPID_API_KEY:
-        # 실제 API 통신 로직 (추후 활성화)
-        url = "https://twitter-trends.p.rapidapi.com/trends"
-        headers = {"X-RapidAPI-Key": RAPID_API_KEY}
-        # response = requests.get(url, headers=headers)
-        # return response.json()
-        pass 
-
-    # --- API 키가 없을 때의 동적 데이터 (새로고침 시마다 변동) ---
     trends = []
-    
-    # 실제 접속 가능한 다양한 샘플 URL 풀
     x_urls = [
         "https://x.com/elonmusk/status/1769498263723327668",
         "https://x.com/SpaceX/status/1768270609355473138",
@@ -155,6 +137,7 @@ with main_content:
     
     tab_dl, tab_rank = st.tabs(["📥 초고속 다운로드", "🔥 실시간 인기 영상 리스트"])
     
+    # --- 다운로드 탭 ---
     with tab_dl:
         st.write("")
         url_input = st.text_input("👇 다운로드할 링크(URL)를 아래에 붙여넣으세요.", placeholder="예: https://x.com/username/status/...")
@@ -172,23 +155,47 @@ with main_content:
             else:
                 st.warning("먼저 링크를 입력해주세요.")
 
+    # --- 랭킹 탭 ---
     with tab_rank:
         st.write("")
         col1, col2 = st.columns([3, 1])
         with col1:
             selected_platform = st.radio("보기 옵션 선택:", ["🔥 전체보기", "🐦 X (Twitter)", "📸 Instagram"], horizontal=True)
         with col2:
-            # 새로고침 버튼을 만들어 실시간으로 데이터가 변하는 것을 시각적으로 보여줌
             if st.button("🔄 실시간 데이터 갱신"):
                 st.rerun()
 
         st.markdown("---")
         
-        # 실시간 데이터 가져오기 (API 키가 없으면 시뮬레이션 데이터가 랜덤하게 섞여 나옵니다)
         all_trends = fetch_real_time_trends()
         
+        # 필터링 부분 (에러 안 나도록 완벽하게 띄어쓰기 정렬됨)
         if selected_platform == "🐦 X (Twitter)":
             filtered_trends = [t for t in all_trends if t["platform"] == "X (Twitter)"]
         elif selected_platform == "📸 Instagram":
             filtered_trends = [t for t in all_trends if t["platform"] == "Instagram"]
         else:
+            filtered_trends = all_trends
+
+        # 리스트 나열 박스
+        with st.container(height=800):
+            for t in filtered_trends:
+                bg_class = "x-bg" if t['platform'] == "X (Twitter)" else "ig-bg"
+                icon = "🐦" if t['platform'] == "X (Twitter)" else "📸"
+                
+                st.markdown(f"""
+                <div class="video-card">
+                    <div class="thumb-box {bg_class}">
+                        <div class="play-btn">▶</div>
+                    </div>
+                    <div class="card-info">
+                        <h4>🏅 {t['rank']}위 | {t['title']}</h4>
+                        <p>{icon} 플랫폼: {t['platform']} &nbsp;|&nbsp; 📈 실시간 조회수: {t['count']}</p>
+                        <a href="{t['url']}" target="_blank" class="copy-link">🔗 원본 영상 보러가기</a>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+# 하단 푸터
+st.markdown("<br><hr style='border-color: #2d3139;'>", unsafe_allow_html=True)
+st.caption("<div style='text-align:center; color:#666;'>© 2026 SNS Media Hub. All rights reserved. | 이용약관 | DMCA</div>", unsafe_allow_html=True)
