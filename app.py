@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import yt_dlp
 import os
 import tempfile
@@ -45,40 +44,54 @@ st.markdown("""
     .side-banner:hover {
         border-color: #8E2DE2;
         color: white;
-        transform: translateY(-2px);
     }
     
-    /* 랭킹 카드 디자인 */
-    .ranking-card {
-        background-color: #161922;
-        border-left: 4px solid #8E2DE2;
-        padding: 15px 20px;
+    /* 자체 썸네일 카드 디자인 */
+    .video-card {
+        background-color: #1c1f26;
+        border: 1px solid #2d3139;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        transition: 0.3s;
+    }
+    .video-card:hover {
+        border-color: #8E2DE2;
+        background-color: #242833;
+    }
+    .thumb-box {
+        width: 160px;
+        height: 90px;
+        background: #000;
         border-radius: 8px;
-        margin-bottom: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 2rem;
+        position: relative;
+    }
+    .x-bg { background: linear-gradient(45deg, #000000, #333333); }
+    .ig-bg { background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); }
+    .play-btn {
+        color: white;
+        opacity: 0.8;
+    }
+    .card-info h4 { margin: 0 0 10px 0; color: #fff; }
+    .card-info p { margin: 0; color: #888; font-size: 0.9rem; }
+    .copy-link {
+        color: #8E2DE2;
+        text-decoration: none;
+        font-weight: bold;
+        margin-top: 10px;
+        display: inline-block;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# === 3. 영상 임베드 함수 (실제 SNS 게시물 노출용) ===
-# 트위터(X) 게시물을 웹사이트에 진짜로 띄워주는 기능입니다.
-def embed_x_tweet(tweet_url):
-    html_code = f"""
-    <blockquote class="twitter-tweet" data-theme="dark">
-    <a href="{tweet_url}"></a>
-    </blockquote>
-    <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-    """
-    components.html(html_code, height=450, scrolling=True)
-
-# 인스타그램 게시물을 웹사이트에 띄워주는 기능입니다.
-def embed_instagram(post_url):
-    html_code = f"""
-    <blockquote class="instagram-media" data-instgrm-permalink="{post_url}?utm_source=ig_embed" data-instgrm-version="14"></blockquote>
-    <script async src="//www.instagram.com/embed.js"></script>
-    """
-    components.html(html_code, height=500, scrolling=True)
-
-# === 4. 백엔드 로직 ===
+# === 3. 백엔드 로직 ===
 def download_video(url):
     ydl_opts = {
         'format': 'best',
@@ -94,14 +107,12 @@ def download_video(url):
     except Exception as e:
         return None, str(e)
 
-# 50개 랭킹 데이터 생성 함수
 @st.cache_data
 def generate_50_trends():
     trends = []
-    # 데모를 위해 실제 존재하는 안전한 트윗/인스타 URL 구조를 사용합니다.
-    # 추후 API를 연결하면 이 URL들이 실시간으로 교체됩니다.
-    sample_x_url = "https://twitter.com/X/status/1801041697268801758"
-    sample_ig_url = "https://www.instagram.com/p/C-vT-0_h"
+    # 데모용 원본 링크 (접속 가능한 링크 예시)
+    sample_x_url = "https://x.com/elonmusk/status/1769498263723327668"
+    sample_ig_url = "https://www.instagram.com/instagram/"
     
     for i in range(1, 51):
         platform = "X (Twitter)" if i % 2 == 0 else "Instagram"
@@ -114,32 +125,25 @@ def generate_50_trends():
         })
     return trends
 
-# === 5. 레이아웃 및 UI 구성 ===
+# === 4. UI 구성 ===
 left_ad, main_content, right_ad = st.columns([1.5, 7, 1.5])
 
-# [좌측 광고] - 요청하신 대로 '광고문의'로 변경
 with left_ad:
     st.markdown('<div class="side-banner">📢<br><br><b>광고문의</b><br>배너 등록<br>문의하기</div>', unsafe_allow_html=True)
     st.markdown('<div class="side-banner">🎯<br><br>스폰서 배너<br>영역</div>', unsafe_allow_html=True)
 
-# [우측 광고]
 with right_ad:
     st.markdown('<div class="side-banner">📺<br><br>구글 애드센스<br>광고 자리</div>', unsafe_allow_html=True)
     st.markdown('<div class="side-banner">🤝<br><br>제휴/입점 문의</div>', unsafe_allow_html=True)
 
-# [중앙 메인 영역]
 with main_content:
     st.markdown('<div class="premium-banner">🚀 고화질 SNS 영상 다운로더 & 실시간 트렌드 분석 허브</div>', unsafe_allow_html=True)
     
     tab_dl, tab_rank = st.tabs(["📥 초고속 다운로드", "🔥 실시간 인기 영상 리스트"])
     
-    # --- 탭 1: 다운로드 ---
     with tab_dl:
         st.write("")
-        url_input = st.text_input(
-            "👇 다운로드할 링크(URL)를 아래에 붙여넣으세요.",
-            placeholder="예: https://x.com/username/status/123456..."
-        )
+        url_input = st.text_input("👇 다운로드할 링크(URL)를 아래에 붙여넣으세요.", placeholder="예: https://x.com/username/status/...")
         
         if st.button("지금 추출하기", type="primary", use_container_width=True):
             if url_input:
@@ -150,20 +154,17 @@ with main_content:
                         with open(file_path, "rb") as f:
                             st.download_button("💾 내 기기에 저장하기", data=f, file_name=os.path.basename(file_path), mime="video/mp4", use_container_width=True)
                     else:
-                        st.error(f"❌ 다운로드에 실패했습니다. (상세 오류: {title_or_error})")
+                        st.error(f"❌ 다운로드에 실패했습니다. 비공개 영상이거나 링크가 잘못되었습니다.\n({title_or_error})")
             else:
                 st.warning("먼저 링크를 입력해주세요.")
 
-    # --- 탭 2: 실시간 랭킹 (필터 및 리스트형 뷰) ---
     with tab_rank:
         st.write("")
-        # 상단 플랫폼 선택 필터 추가
         selected_platform = st.radio("보기 옵션 선택:", ["🔥 전체보기", "🐦 X (Twitter)", "📸 Instagram"], horizontal=True)
         st.markdown("---")
         
         all_trends = generate_50_trends()
         
-        # 필터링 로직
         if selected_platform == "🐦 X (Twitter)":
             filtered_trends = [t for t in all_trends if t["platform"] == "X (Twitter)"]
         elif selected_platform == "📸 Instagram":
@@ -171,27 +172,24 @@ with main_content:
         else:
             filtered_trends = all_trends
 
-        # 50개의 영상이 브라우저를 느리게 하는 것을 방지하기 위해 스크롤 컨테이너 사용
+        # 리스트 나열형 (스크롤 박스 안에 50개 배치)
         with st.container(height=800):
             for t in filtered_trends:
-                # 텍스트 정보
+                bg_class = "x-bg" if t['platform'] == "X (Twitter)" else "ig-bg"
+                icon = "🐦" if t['platform'] == "X (Twitter)" else "📸"
+                
                 st.markdown(f"""
-                <div class="ranking-card">
-                    <h4 style="margin:0; color:#fff;">🏅 {t['rank']}위 | {t['title']}</h4>
-                    <p style="margin:5px 0 0 0; color:#aaa; font-size:0.9em;">
-                        플랫폼: {t['platform']} | 📈 조회수: {t['count']}
-                    </p>
+                <div class="video-card">
+                    <div class="thumb-box {bg_class}">
+                        <div class="play-btn">▶</div>
+                    </div>
+                    <div class="card-info">
+                        <h4>🏅 {t['rank']}위 | {t['title']}</h4>
+                        <p>{icon} 플랫폼: {t['platform']} &nbsp;|&nbsp; 📈 조회수: {t['count']}</p>
+                        <a href="{t['url']}" target="_blank" class="copy-link">🔗 원본 영상 보러가기</a>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
-                
-                # 실제 영상 임베드 노출
-                if t['platform'] == "X (Twitter)":
-                    embed_x_tweet(t['url'])
-                else:
-                    embed_instagram(t['url'])
-                
-                st.markdown("<br>", unsafe_allow_html=True)
 
-# --- 푸터 ---
 st.markdown("<br><hr style='border-color: #2d3139;'>", unsafe_allow_html=True)
-st.caption("<div style='text-align:center; color:#666;'>© 2026 SNS Media Hub. All rights reserved. | 이용약관 | DMCA | 개인정보처리방침</div>", unsafe_allow_html=True)
+st.caption("<div style='text-align:center; color:#666;'>© 2026 SNS Media Hub. All rights reserved. | 이용약관 | DMCA</div>", unsafe_allow_html=True)
